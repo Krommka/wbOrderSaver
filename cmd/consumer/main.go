@@ -1,8 +1,8 @@
 package main
 
 import (
-	handler2 "KafkaExample/internal/handler"
 	k "KafkaExample/internal/kafka"
+	handler2 "KafkaExample/internal/kafkaHandler"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"

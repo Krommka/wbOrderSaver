@@ -5,15 +5,16 @@ local:
 	go run cmd/bot.go -env local
 
 run:
-	docker compose -p kinopoisktwoactors up -d
+	docker-compose up -d
 
 stop:
-	docker compose -p kinopoisktwoactors stop
+	docker-compose stop
 
 build:
-	docker compose build
+	docker-compose build
 
 restart:
-	docker compose down && docker compose up -d
+	docker-compose down && docker-compose up -d
 
 clean:
+	docker-compose down -v && docker-compose up -d
