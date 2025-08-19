@@ -1,11 +1,18 @@
-package validation
+package domain
 
 import (
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"regexp"
 )
 
-var validate *validator.Validate
+var (
+	validate      *validator.Validate
+	orderUIDRegex = regexp.MustCompile(`^[a-f0-9]{20}$`)
+	phoneRegex    = regexp.MustCompile(`^\+[0-9]{7,15}$`)
+	zipRegex      = regexp.MustCompile(`^[0-9]+$`)
+	currencyRegex = regexp.MustCompile(`^[A-Z]{3}$`)
+)
 
 func init() {
 	validate = validator.New()
@@ -16,8 +23,9 @@ func init() {
 	_ = validate.RegisterValidation("currency", validateCurrency)
 }
 
+// Валидаторы для кастомных полей
 func validateOrderUID(fl validator.FieldLevel) bool {
-	re := regexp.MustCompile(`^[a-f0-9]{20}$`)
+	re := orderUIDRegex
 	return re.MatchString(fl.Field().String())
 }
 
@@ -26,16 +34,23 @@ func validateTrackNumber(fl validator.FieldLevel) bool {
 }
 
 func validatePhone(fl validator.FieldLevel) bool {
-	re := regexp.MustCompile(`^\+[0-9]{7,15}$`)
+	re := phoneRegex
 	return re.MatchString(fl.Field().String())
 }
 
 func validateZip(fl validator.FieldLevel) bool {
-	re := regexp.MustCompile(`^[0-9]+$`)
+	re := zipRegex
 	return re.MatchString(fl.Field().String())
 }
 
 func validateCurrency(fl validator.FieldLevel) bool {
-	re := regexp.MustCompile(`^[A-Z]{3}$`)
+	re := currencyRegex
 	return re.MatchString(fl.Field().String())
+}
+
+func (o *Order) Validate() error {
+	if o.Payment.Amount != o.Payment.DeliveryCost+o.Payment.GoodsTotal {
+		return errors.New("amount должен быть равен delivery_cost + goods_total")
+	}
+	return validate.Struct(o)
 }

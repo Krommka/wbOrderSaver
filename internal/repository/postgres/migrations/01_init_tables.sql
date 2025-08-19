@@ -1,33 +1,33 @@
 DO $$
 BEGIN
 CREATE TABLE IF NOT EXISTS payment_providers (
-                                                 provider_id SERIAL PRIMARY KEY,
-                                                 name VARCHAR(50) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
+    provider_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
     );
 
 CREATE TABLE IF NOT EXISTS delivery_services (
-                                                 service_id SERIAL PRIMARY KEY,
-                                                 name VARCHAR(100) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
+    service_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
     );
 
 CREATE TABLE IF NOT EXISTS brands (
-                                      brand_id SERIAL PRIMARY KEY,
-                                      name VARCHAR(255) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
+    brand_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL CHECK (name ~ '^[A-Za-z0-9 ]+$')
     );
 
 CREATE TABLE IF NOT EXISTS item_statuses (
-                                             status_id INTEGER PRIMARY KEY,
-                                             description VARCHAR(255) NOT NULL
+    status_id INTEGER PRIMARY KEY,
+    description VARCHAR(255) NOT NULL
     );
 
 CREATE TABLE IF NOT EXISTS currencies (
-                                          currency_id CHAR(3) PRIMARY KEY CHECK (currency_id ~ '^[A-Z]{3}$'),
+    currency_id CHAR(3) PRIMARY KEY CHECK (currency_id ~ '^[A-Z]{3}$'),
     name VARCHAR(50) NOT NULL,
     symbol VARCHAR(5)
     );
 
 CREATE TABLE IF NOT EXISTS orders (
-                                      order_uid VARCHAR(255) PRIMARY KEY,
+    order_uid VARCHAR(255) PRIMARY KEY,
     track_number VARCHAR(255) NOT NULL,
     entry VARCHAR(50) NOT NULL,
     locale VARCHAR(10) NOT NULL CHECK (locale ~ '^[a-z]{2}$'),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS orders (
     );
 
 CREATE TABLE IF NOT EXISTS delivery (
-                                        order_uid VARCHAR(255) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
+    order_uid VARCHAR(255) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL CHECK (name ~ '^[A-Za-z ]+$'),
     phone VARCHAR(50) NOT NULL CHECK (phone ~ '^\+[0-9]{7,15}$'),
     zip VARCHAR(50) NOT NULL CHECK (zip ~ '^[0-9]+$'),
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS delivery (
     );
 
 CREATE TABLE IF NOT EXISTS payment (
-                                       transaction VARCHAR(255) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
+    transaction VARCHAR(255) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     request_id VARCHAR(255) DEFAULT '',
     currency_id CHAR(3) REFERENCES currencies(currency_id),
     provider_id INTEGER REFERENCES payment_providers(provider_id),
@@ -66,8 +66,7 @@ CREATE TABLE IF NOT EXISTS payment (
     );
 
 CREATE TABLE IF NOT EXISTS items (
-                                     id SERIAL PRIMARY KEY,
-                                     order_uid VARCHAR(255) NOT NULL REFERENCES orders(order_uid) ON DELETE CASCADE,
+    id SERIAL PRIMARY KEY,
     chrt_id BIGINT NOT NULL CHECK (chrt_id > 0),
     track_number VARCHAR(255) NOT NULL,
     price INTEGER NOT NULL CHECK (price > 0),

@@ -1,10 +1,10 @@
 package logger
 
 import (
-	"KinopoiskTwoActors/configs"
 	"io"
 	"log/slog"
 	"os"
+	"wb_l0/configs"
 )
 
 const (
@@ -19,17 +19,17 @@ func NewLogger(cfg *configs.Config) *slog.Logger {
 
 	switch cfg.Env {
 	case envLocal:
-		multiWriter, err := newMultiWriter("logs/bot.log")
+		multiWriter, err := newMultiWriter("logs/orderSaver.log")
 		logger = slog.New(
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
 				Level:     slog.LevelDebug,
 				AddSource: true,
 			}))
 		if err != nil {
-			logger.Error("Error creating log file: ", "error", err)
+			logger.Error("ошибка создания log файла: ", "error", err)
 		}
 	case envDev:
-		multiWriter, err := newMultiWriter("/var/log/telegram-bot.log")
+		multiWriter, err := newMultiWriter("/var/log/orderSaver.log")
 		logger = slog.New(
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
 				Level:     slog.LevelDebug,
@@ -39,14 +39,14 @@ func NewLogger(cfg *configs.Config) *slog.Logger {
 			logger.Error("Error creating log file: ", err)
 		}
 	case envProd:
-		multiWriter, err := newMultiWriter("/var/log/telegram-bot.log")
+		multiWriter, err := newMultiWriter("/var/log/orderSaver.log")
 		logger = slog.New(
 			slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
 				Level:     slog.LevelInfo,
 				AddSource: true,
 			}))
 		if err != nil {
-			logger.Error("Error creating log file: ", err)
+			logger.Error("ошибка создания log файла:: ", err)
 		}
 	}
 

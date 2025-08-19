@@ -1,6 +1,5 @@
 DO $$
 BEGIN
-  -- Добавляем больше статусов
 INSERT INTO item_statuses (status_id, description) VALUES
     (200, 'Created'),
     (202, 'Approved'),

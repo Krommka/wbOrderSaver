@@ -2,61 +2,60 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"log"
-	"math"
-	"strings"
 	"time"
+	"wb_l0/internal/domain"
 
-	"Go_Team00.ID_376234-Team_TL_barievel/configs"
-	"Go_Team00.ID_376234-Team_TL_barievel/db"
-	"Go_Team00.ID_376234-Team_TL_barievel/internal/entities"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"wb_l0/configs"
 )
 
 type Store struct {
-	db *gorm.DB
+	db *sql.DB
 }
 
-func NewStore(ctx context.Context, cfg configs.Config) (*Store, error) {
+func NewStore(ctx context.Context, cfg *configs.Config) (*Store, error) {
 	store := &Store{}
 
-	err := store.Connect(ctx, cfg)
+	err := store.Connect(ctx, *cfg)
 	if err != nil {
-		return nil, fmt.Errorf("connect failed: %w", err)
+		return nil, fmt.Errorf("connection failed: %w", err)
 	}
 	return store, nil
 }
 
-func (store *Store) Connect(ctx context.Context, cfg configs.Config) error {
+func (s *Store) Connect(ctx context.Context, cfg configs.Config) error {
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("%w: context cancelled before connection", db.ErrDBConnection)
+		return fmt.Errorf("context cancelled before connection: %w", err)
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=%s",
-		cfg.DB.Host,
-		cfg.DB.Port,
+	connConfig, err := pgx.ParseConfig(fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&connect_timeout=%d",
 		cfg.DB.User,
 		cfg.DB.Password,
+		cfg.DB.Host,
+		cfg.DB.Port,
 		cfg.DB.Name,
-		cfg.DB.ConnectTimeout,
-	)
+		cfg.DB.ConnectTimeout.Seconds(),
+	))
+	if err != nil {
+		return fmt.Errorf("failed to parse connection config: %w", err)
+	}
 
-	var dataBase *gorm.DB
-	var err error
+	var db *sql.DB
 
 	retries := cfg.DB.Retries
 	retryDelay := 5 * time.Second
 
 	for i := 0; i < retries; i++ {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("%w: context cancelled during retries", db.ErrDBConnection)
+		if err = ctx.Err(); err != nil {
+			return fmt.Errorf("%w: context cancelled during retries", err)
 		}
 
-		dataBase, err = openConnection(ctx, dsn)
+		db, err = openConnection(ctx, connConfig)
 		if err == nil {
 			break
 		}
@@ -67,179 +66,143 @@ func (store *Store) Connect(ctx context.Context, cfg configs.Config) error {
 		case <-time.After(retryDelay):
 
 		case <-ctx.Done():
-			return fmt.Errorf("%w: connection cancelled during retry delay", db.ErrTimeout)
+			return fmt.Errorf("connection cancelled during retry delay: %w", ctx.Err())
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("%w: failed to connect to database after %d retries: %v", db.ErrDBConnection, retries, err)
+		return fmt.Errorf("failed to connect to database after %d retries: %w", retries, err)
 	}
 
-	sqlDB, err := dataBase.DB()
-	if err != nil {
-		return fmt.Errorf("%w: failed to retrieve sql.DB object: %v", db.ErrDBConnection, err)
-	}
+	db.SetMaxOpenConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
-	sqlDB.SetMaxOpenConns(10)
-	sqlDB.SetConnMaxLifetime(5 * time.Minute)
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
-	store.db = dataBase
-
-	if err := store.Migrate(); err != nil {
-		return err
-	}
+	s.db = db
 
 	return nil
 }
 
-func openConnection(ctx context.Context, dsn string) (*gorm.DB, error) {
-	if ctx.Err() != nil {
-		return nil, fmt.Errorf("%w: context cancelled before connection", db.ErrTimeout)
-	}
-
+func openConnection(ctx context.Context, config *pgx.ConnConfig) (*sql.DB, error) {
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	resultChan := make(chan struct {
-		db  *gorm.DB
-		err error
-	})
-
-	go func() {
-
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Silent),
-		})
-		resultChan <- struct {
-			db  *gorm.DB
-			err error
-		}{db, err}
-	}()
-
-	select {
-	case <-pingCtx.Done():
-		return nil, fmt.Errorf("%w: context cancelled during connection", db.ErrTimeout)
-	case result := <-resultChan:
-		if result.err != nil {
-			return nil, fmt.Errorf("%w: failed to initialize database object: %v", db.ErrDBConnection, result.err)
-		}
-		sqlDB, err := result.db.DB()
-		if err != nil {
-			return nil, fmt.Errorf("%w: failed to check database connection: %v", db.ErrDBConnection, err)
-		}
-		if err := sqlDB.PingContext(pingCtx); err != nil {
-			return nil, fmt.Errorf("%w: database ping failed: %v", db.ErrDBConnection, err)
-		}
-		return result.db, nil
-	}
-}
-
-func (store *Store) Migrate() error {
-	if err := store.db.AutoMigrate(&db.EntryDB{}); err != nil {
-		return fmt.Errorf("error migrating database: %v", err)
-	}
-	return nil
-}
-
-// Disconnect Close connection
-func (store *Store) Disconnect(ctx context.Context) error {
-	if store.db == nil {
-		return fmt.Errorf("store is nil")
-	}
-
-	sqlDB, err := store.db.DB()
+	connStr := stdlib.RegisterConnConfig(config)
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
-		return fmt.Errorf("failed to get sql.DB: %w", err)
+		return nil, fmt.Errorf("failed to open connection: %w", err)
+	}
+
+	if err := db.PingContext(pingCtx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping failed: %w", err)
+	}
+
+	return db, nil
+}
+
+func (s *Store) Disconnect(ctx context.Context) error {
+	if s.db == nil {
+		return nil
 	}
 
 	done := make(chan error, 1)
-
 	go func() {
-		done <- sqlDB.Close()
+		done <- s.db.Close()
 	}()
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("database shutdown timed out: %w", ctx.Err())
+		return fmt.Errorf("shutdown timed out: %w", ctx.Err())
 	case err := <-done:
 		if err != nil {
-			return fmt.Errorf("failed to shutdown database: %v", err)
+			return fmt.Errorf("failed to close connection: %w", err)
 		}
+		return nil
 	}
-	return nil
 }
 
-// GetAnomaly Send SELECT statement with session_id, return Entry
-func (store *Store) GetAnomaly(ctx context.Context, sessionId string) ([]entities.Entry, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("%w: context error before query", db.ErrDBQuery)
-	}
-
-	if strings.TrimSpace(sessionId) == "" {
-		return nil, fmt.Errorf("%w: empty sessionId", db.ErrDBQuery)
-	}
-
-	var message []db.EntryDB
-
-	err := store.db.WithContext(ctx).Where("session_id = ?",
-		sessionId).
-		Find(&message).
-		Error
-
+func (s *Store) CreateOrder(ctx context.Context, order domain.Order) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", db.ErrDBQuery, err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `
+        INSERT INTO orders (
+            order_uid, track_number, entry, locale, internal_signature,
+            customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (order_uid) DO NOTHING`,
+		order.OrderUID, order.TrackNumber, order.Entry, order.Locale, order.InternalSignature,
+		order.CustomerID, order.DeliveryService, order.ShardKey, order.SMID, order.DateCreated, order.OOFShard,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert order: %w", err)
 	}
 
-	if len(message) == 0 {
-		return nil, fmt.Errorf("%w: session_id=%s", db.ErrRecordNotFound, sessionId)
+	_, err = tx.ExecContext(ctx, `
+        INSERT INTO delivery (
+            order_uid, name, phone, zip, city, address, region, email
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (order_uid) DO NOTHING`,
+		order.OrderUID, order.Delivery.Name, order.Delivery.Phone, order.Delivery.Zip,
+		order.Delivery.City, order.Delivery.Address, order.Delivery.Region, order.Delivery.Email,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert delivery: %w", err)
 	}
 
-	result := make([]entities.Entry, 0, len(message))
-	for _, entryDB := range message {
-		result = append(result, db.EntryDbToEntry(entryDB))
+	_, err = tx.ExecContext(ctx, `
+        INSERT INTO payment (
+            transaction, request_id, currency_id, provider_id, amount, 
+            payment_dt, bank, delivery_cost, goods_total, custom_fee
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (transaction) DO NOTHING`,
+		order.Payment.Transaction, order.Payment.RequestID, order.Payment.Currency,
+		order.Payment.Provider, order.Payment.Amount, order.Payment.PaymentDT,
+		order.Payment.Bank, order.Payment.DeliveryCost, order.Payment.GoodsTotal,
+		order.Payment.CustomFee,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert payment: %w", err)
 	}
 
-	return result, nil
-}
+	for _, item := range order.Items {
+		var brandID int
+		err = tx.QueryRowContext(ctx, `
+            SELECT brand_id FROM brands WHERE name = $1
+        `, item.Brand).Scan(&brandID)
 
-// PutAnomaly Add new record to table
-func (store *Store) PutAnomaly(ctx context.Context, msg entities.Entry) error {
-
-	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("%w: context error before query", db.ErrDBQuery)
-	}
-
-	if strings.TrimSpace(msg.SessionId) == "" {
-		return fmt.Errorf("%w: empty sessionId", db.ErrDBQuery)
-	}
-
-	if math.IsNaN(msg.Frequency) || math.IsInf(msg.Frequency, 0) {
-		return fmt.Errorf("%w: invalid frequency", db.ErrDBQuery)
-	}
-
-	if msg.Timestamp.IsZero() {
-		return fmt.Errorf("%w: empty timestamp", db.ErrDBQuery)
-	}
-
-	result := store.db.WithContext(ctx).Create(db.EntryToEntryDB(msg))
-	if result.Error != nil {
-		if strings.Contains(result.Error.Error(), "duplicate key") {
-			return db.ErrDuplicateEntry
+		if err != nil {
+			err = tx.QueryRowContext(ctx, `
+                INSERT INTO brands (name) VALUES ($1)
+                ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+                RETURNING brand_id
+            `, item.Brand).Scan(&brandID)
+			if err != nil {
+				return fmt.Errorf("failed to get/create brand: %w", err)
+			}
 		}
-		return fmt.Errorf("%w: %v", db.ErrDBQuery, result.Error)
+
+		_, err = tx.ExecContext(ctx, `
+            INSERT INTO items (
+                order_uid, chrt_id, track_number, price, rid, 
+                name, sale, size, total_price, nm_id, brand_id, status_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (order_uid, chrt_id) DO NOTHING`,
+			order.OrderUID, item.ChrtID, item.TrackNumber, item.Price, item.RID,
+			item.Name, item.Sale, item.Size, item.TotalPrice, item.NMID, brandID, item.Status,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert item %d: %w", item.ChrtID, err)
+		}
 	}
 
-	return nil
-}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 
-// DeleteAnomaly Delete anomaly from table
-func (store *Store) DeleteAnomaly(ctx context.Context, sessionId string) error {
-	result := store.db.WithContext(ctx).Delete(&db.EntryDB{}, "session_id = ?", sessionId)
-	if result.Error != nil {
-		return fmt.Errorf("%w: %v", db.ErrDBQuery, result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return db.ErrRecordNotFound
-	}
 	return nil
 }

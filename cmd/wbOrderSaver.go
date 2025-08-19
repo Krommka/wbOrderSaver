@@ -1,7 +1,9 @@
 package main
 
-import "log"
+import (
+	"wb_l0/internal/app"
+)
 
 func main() {
-	log.Printf("Start")
+	app.Run()
 }

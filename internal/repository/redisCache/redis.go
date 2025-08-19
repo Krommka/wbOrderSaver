@@ -1,8 +1,6 @@
 package redisCache
 
 import (
-	"KinopoiskTwoActors/configs"
-	"KinopoiskTwoActors/internal/domain"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +8,8 @@ import (
 	"log/slog"
 	"strconv"
 	"time"
+	"wb_l0/configs"
+	"wb_l0/internal/domain"
 )
 
 type RedisRepo struct {
@@ -43,32 +43,32 @@ func NewCache(ctx context.Context, cfg *configs.Config, prefix string, log *slog
 	}, nil
 }
 
-func (r *RedisRepo) GetMovieByID(ctx context.Context, movieID int) (domain.Movie, error) {
-	r.log.Debug("Получение фильма в Redis", "movieID", movieID)
-	key := r.prefix + strconv.FormatInt(int64(movieID), 10)
-	data, err := r.client.Get(ctx, key).Bytes()
-	if errors.Is(err, redis.Nil) {
-		r.log.Debug("Фильм в базе Redis не найден", "movieID", movieID)
-		return domain.Movie{}, domain.ErrRecordNotFound
-	} else if err != nil {
-		r.log.Debug("Ошибка получение данных из Redis", "movieID", movieID)
-		return domain.Movie{}, err
-	}
-
-	var movie domain.Movie
-	if err := json.Unmarshal(data, &movie); err != nil {
-		r.log.Debug("Ошибка конвертации из базы Redis", "movieID", movieID)
-		return domain.Movie{}, err
-	}
-	return movie, nil
-}
-
-func (r *RedisRepo) SetMovie(ctx context.Context, movie domain.Movie) error {
-	key := r.prefix + strconv.FormatInt(int64(movie.ID), 10)
-	data, err := json.Marshal(movie)
-	if err != nil {
-		r.log.Error("Отправка фильма в базу Redis", "error", err)
-		return err
-	}
-	return r.client.Set(ctx, key, data, 24*time.Hour).Err()
-}
+//func (r *RedisRepo) GetMovieByID(ctx context.Context, movieID int) (domain.Movie, error) {
+//	r.log.Debug("Получение фильма в Redis", "movieID", movieID)
+//	key := r.prefix + strconv.FormatInt(int64(movieID), 10)
+//	data, err := r.client.Get(ctx, key).Bytes()
+//	if errors.Is(err, redis.Nil) {
+//		r.log.Debug("Фильм в базе Redis не найден", "movieID", movieID)
+//		return domain.Movie{}, domain.ErrRecordNotFound
+//	} else if err != nil {
+//		r.log.Debug("Ошибка получение данных из Redis", "movieID", movieID)
+//		return domain.Movie{}, err
+//	}
+//
+//	var movie domain.Movie
+//	if err := json.Unmarshal(data, &movie); err != nil {
+//		r.log.Debug("Ошибка конвертации из базы Redis", "movieID", movieID)
+//		return domain.Movie{}, err
+//	}
+//	return movie, nil
+//}
+//
+//func (r *RedisRepo) SetMovie(ctx context.Context, movie domain.Movie) error {
+//	key := r.prefix + strconv.FormatInt(int64(movie.ID), 10)
+//	data, err := json.Marshal(movie)
+//	if err != nil {
+//		r.log.Error("Отправка фильма в базу Redis", "error", err)
+//		return err
+//	}
+//	return r.client.Set(ctx, key, data, 24*time.Hour).Err()
+//}
