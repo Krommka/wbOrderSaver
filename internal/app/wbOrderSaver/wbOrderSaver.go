@@ -1,9 +1,8 @@
-package app
+package producer
 
 import (
 	"context"
-	"errors"
-	"net/http"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -41,27 +40,43 @@ func Run() {
 	//	film = usecase.NewFilm(repo)
 	//}
 
-	httpSrv := &http.Server{
-		Addr:    ":8081",
-		Handler: http.Handler(nil),
-	}
-
-	go func() {
-		log.Info("Запуск сервера на порту 8081")
-		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("HTTP server error: ", err)
-			os.Exit(1)
-		}
-	}()
+	//httpSrv := &http.Server{
+	//	Addr:    ":8081",
+	//	Handler: http.Handler(nil),
+	//}
+	//
+	//go func() {
+	//	log.Info("Запуск сервера на порту 8081")
+	//	if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	//		log.Error("HTTP server error: ", err)
+	//		os.Exit(1)
+	//	}
+	//}()
 
 	testOrder := createTestOrder()
 
 	// Вставляем заказ в базу
-	if err := postgres.CreateOrder(ctx, testOrder); err != nil {
-		log.Fatalf("Failed to create order: %v", err)
+	if err := db.CreateOrder(ctx, testOrder); err != nil {
+		log.Error("failed to create order:", err)
 	}
 
-	log.Println("Order created successfully!")
+	log.Info("Order created successfully!")
+
+	var order *domain.Order
+
+	if order, err = db.GetOrder(ctx, "b563feb7b2b84b6b563a"); err != nil {
+		log.Error("failed to get order:", err)
+	}
+	fmt.Println(order)
+	//
+	if err = db.DeleteOrder(ctx, "b563feb7b2b84b6b563a"); err != nil {
+		log.Error("failed to delete order:", err)
+	}
+	//
+	if order, err = db.GetOrder(ctx, "b563feb7b2b84b6b563a"); err != nil {
+		log.Error("failed to get order:", err)
+	}
+	//
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -98,7 +113,7 @@ func Run() {
 func createTestOrder() domain.Order {
 	now := time.Now().UTC()
 	return domain.Order{
-		OrderUID:          "b563feb7b2b84b6test",
+		OrderUID:          "b563feb7b2b84b6b563a",
 		TrackNumber:       "WBILMTESTTRACK",
 		Entry:             "WBIL",
 		Locale:            "en",
@@ -119,7 +134,7 @@ func createTestOrder() domain.Order {
 			Email:   "test@gmail.com",
 		},
 		Payment: domain.Payment{
-			Transaction:  "b563feb7b2b84b6test",
+			Transaction:  "b563feb7b2b84b6b563a",
 			RequestID:    "",
 			Currency:     "USD",
 			Provider:     "wbpay",
@@ -135,7 +150,7 @@ func createTestOrder() domain.Order {
 				ChrtID:      9934930,
 				TrackNumber: "WBILMTESTTRACK",
 				Price:       453,
-				RID:         "ab4219087a764ae0btest",
+				RID:         "ab4219087a764ae0b473",
 				Name:        "Mascaras",
 				Sale:        30,
 				Size:        "0",
