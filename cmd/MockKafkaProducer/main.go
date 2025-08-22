@@ -26,8 +26,9 @@ func main() {
 	numberOfKeys := cfg.KF.ProducerNumberOfKeys
 	uuids := generateKeys(numberOfKeys)
 	order := createTestOrder()
-	for i := 61; i < 80; i++ {
+	for i := 1; i < 20; i++ {
 		order.OrderUID = intToHex20(i)
+		order.Payment.Transaction = order.OrderUID
 		orderString, err := json.Marshal(order)
 		if err != nil {
 			fmt.Printf("error marshalling order %v: %v\n", order, err)

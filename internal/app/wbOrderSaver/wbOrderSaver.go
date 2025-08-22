@@ -13,7 +13,9 @@ import (
 	k "wb_l0/internal/delivery/kafka"
 	handler2 "wb_l0/internal/delivery/kafka/kafkaHandler"
 	"wb_l0/internal/domain"
+	"wb_l0/internal/repository/cachedRepo"
 	"wb_l0/internal/repository/postgres"
+	"wb_l0/internal/repository/redisCache"
 	"wb_l0/internal/usecase"
 	"wb_l0/pkg/logger"
 )
@@ -33,18 +35,16 @@ func Run() {
 		os.Exit(1)
 	}
 
-	//cache, err := redisCache.NewCache(ctx, cfg, "movie:", log)
-	//if err == nil {
-	//	cachedRepo := cachedRepo.NewCachedRepo(db, cache, log)
-	//	actor = usecase.NewActor(cachedRepo)
-	//	film = usecase.NewFilm(cachedRepo)
-	//} else {
-	//	actor = usecase.NewActor(repo)
-	//	film = usecase.NewFilm(repo)
-	//}
-	uc := usecase.NewOrderUsecase(db, 3, log)
+	cache, err := redisCache.NewCache(ctx, cfg, "order:", log)
+	var orderUsecase *usecase.OrderUsecase
+	if err == nil {
+		repo := cachedRepo.NewCachedRepo(db, cache, log)
+		orderUsecase = usecase.NewOrderUsecase(repo, 3, log)
+	} else {
+		orderUsecase = usecase.NewOrderUsecase(db, 3, log)
+	}
 
-	handler := handler2.NewKafkaHandler(uc, log)
+	handler := handler2.NewKafkaHandler(orderUsecase, log)
 	c1, err := k.NewConsumer(cfg, handler, 1)
 	if err != nil {
 		log.Error("failed to connect to consumer")
@@ -55,7 +55,7 @@ func Run() {
 		c1.Start()
 	}()
 	orderUID := "00000000000000000001"
-	order, err := uc.GetOrder(ctx, orderUID)
+	order, err := orderUsecase.GetOrder(ctx, orderUID)
 	if err != nil {
 		if err != domain.ErrRecordNotFound {
 			log.Error("error getting order", "error", err, "orderUID", orderUID)

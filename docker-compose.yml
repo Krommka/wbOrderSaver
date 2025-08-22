@@ -6,13 +6,29 @@ services:
       - ./logs:/var/log
     ports:
       - "8081:8080"
+    networks:
+      - app-network
+      - kafka-net
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    restart: on-failure
 
-#  redis:
-#    image: redis:latest
-#    ports:
-#      - "6379:6379"
-#    volumes:
-#      - redisdata:/data
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - app-network
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.7.1
@@ -44,6 +60,12 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29091,PLAINTEXT_HOST://localhost:9091
     networks:
       - kafka-net
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29091" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
   kafka2:
     image: confluentinc/cp-server:7.1.1
@@ -60,6 +82,12 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9092
     networks:
       - kafka-net
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
   kafka3:
     image: confluentinc/cp-server:7.1.1
@@ -76,6 +104,12 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29093,PLAINTEXT_HOST://localhost:9093
     networks:
       - kafka-net
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29093" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
   kafka-ui:
     container_name: kafka-ui
@@ -93,6 +127,12 @@ services:
       - kafka3
     networks:
       - kafka-net
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+                                     
 
   db:
     image: postgres:15
@@ -107,12 +147,22 @@ services:
       - ./internal/repository/postgres/migrations/01_init_tables.sql:/docker-entrypoint-initdb.d/01_init_tables.sql
       - ./internal/repository/postgres/migrations/02_seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql
       - db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 
 volumes:
-#  redisdata:
+  redisdata:
   db_data:
 
 networks:
   kafka-net:
+    driver: bridge
+  app-network:
     driver: bridge
 

@@ -26,7 +26,8 @@ func NewConsumer(cfg *configs.Config, handler Handler, consumerNumber int) (*Con
 	error) {
 
 	config := &kafka.ConfigMap{
-		"bootstrap.servers":        cfg.KF.BootstrapServers,
+		//"bootstrap.servers":        cfg.KF.BootstrapServers,
+		"bootstrap.servers":        "kafka1:9091,kafka2:9092,kafka3:9093",
 		"group.id":                 cfg.KF.ConsumerGroup,
 		"session.timeout.ms":       cfg.KF.SessionTimeoutMs,
 		"enable.auto.offset.store": false,
