@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS currencies (
     );
 
 CREATE TABLE IF NOT EXISTS orders (
-    order_uid VARCHAR(255) PRIMARY KEY,
+    order_uid VARCHAR(20) PRIMARY KEY,
     track_number VARCHAR(255) NOT NULL,
     entry VARCHAR(50) NOT NULL,
     locale VARCHAR(10) NOT NULL CHECK (locale ~ '^[a-z]{2}$'),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS orders (
     );
 
 CREATE TABLE IF NOT EXISTS delivery (
-    order_uid VARCHAR(255) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
+    order_uid VARCHAR(20) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL CHECK (name ~ '^[A-Za-z ]+$'),
     phone VARCHAR(50) NOT NULL CHECK (phone ~ '^\+[0-9]{7,15}$'),
     zip VARCHAR(50) NOT NULL CHECK (zip ~ '^[0-9]+$'),
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS payment (
 
 CREATE TABLE IF NOT EXISTS items (
     id SERIAL PRIMARY KEY,
-    chrt_id BIGINT NOT NULL CHECK (chrt_id > 0),
+    chrt_id BIGINT NOT NULL UNIQUE CHECK (chrt_id > 0),
     track_number VARCHAR(255) NOT NULL,
     price INTEGER NOT NULL CHECK (price > 0),
     rid VARCHAR(255) NOT NULL CHECK (rid ~ '^[a-f0-9]{20}$'),
@@ -79,6 +79,13 @@ CREATE TABLE IF NOT EXISTS items (
     brand_id INTEGER REFERENCES brands(brand_id),
     status_id INTEGER REFERENCES item_statuses(status_id)
     );
+
+CREATE TABLE IF NOT EXISTS order_items (
+    order_uid VARCHAR(255) REFERENCES orders(order_uid) ON DELETE CASCADE,
+    item_id BIGINT REFERENCES items(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    PRIMARY KEY (order_uid, item_id)
+);
 
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Ошибка при создании таблиц: %', SQLERRM;

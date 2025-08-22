@@ -2,54 +2,74 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"os"
+	"strconv"
 	"time"
 	"wb_l0/configs"
 	"wb_l0/configs/loader/dotEnvLoader"
 	k "wb_l0/internal/delivery/kafka"
 	"wb_l0/internal/domain"
-	"wb_l0/pkg/logger"
 )
 
 func main() {
 
 	envLoader := dotEnvLoader.DotEnvLoader{}
 	cfg := configs.MustLoad(envLoader)
-	log := logger.NewLogger(cfg)
 
 	p, err := k.NewProducer(cfg)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	numberOfKeys := cfg.KF.ProducerNumberOfKeys
-	uuids := generateUUID(numberOfKeys)
+	uuids := generateKeys(numberOfKeys)
 	order := createTestOrder()
-	orderString, err := json.Marshal(order)
-	if err != nil {
-		log.Error("Error marshalling order", "error", err, "order", order)
-		os.Exit(1)
+	for i := 61; i < 80; i++ {
+		order.OrderUID = intToHex20(i)
+		orderString, err := json.Marshal(order)
+		if err != nil {
+			fmt.Printf("error marshalling order %v: %v\n", order, err)
+			os.Exit(1)
+		}
+		key := uuids[i%len(uuids)]
+		if err = p.Produce(string(orderString), cfg.KF.Topic, key); err != nil {
+			fmt.Printf("Error producing order %v: %v\n", order, err)
+		}
+		fmt.Printf("Producing order %v to Kafka\n", order)
 	}
-	key := uuids[0]
-	if err = p.Produce(string(orderString), cfg.KF.Topic, key); err != nil {
-		log.Error("Error producing order", "error", err, "order", order)
-	}
-
 }
 
-func generateUUID(numberOfKeys int) []string {
-	uuids := make([]string, numberOfKeys)
-	for i := 0; i < numberOfKeys; i++ {
-		uuids[i] = uuid.NewString()
+func intToHex20(num int) string {
+	// Преобразуем число в HEX строку
+	hexStr := strconv.FormatInt(int64(num), 16)
+
+	// Дополняем строку лидирующими нулями до 20 символов
+	if len(hexStr) < 20 {
+		// Создаем строку из нулей нужной длины
+		zeros := make([]byte, 20-len(hexStr))
+		for i := range zeros {
+			zeros[i] = '0'
+		}
+		hexStr = string(zeros) + hexStr
 	}
-	return uuids
+
+	return hexStr
+}
+
+func generateKeys(numberOfKeys int) []string {
+	keys := make([]string, numberOfKeys)
+	for i := 0; i < numberOfKeys; i++ {
+		keys[i] = uuid.NewString()
+	}
+	return keys
 }
 
 func createTestOrder() domain.Order {
 	now := time.Now().UTC()
 	return domain.Order{
-		OrderUID:          "b563feb7b2b84b6b563b",
+		OrderUID:          "",
 		TrackNumber:       "WBILMTESTTRACK",
 		Entry:             "WBIL",
 		Locale:            "en",

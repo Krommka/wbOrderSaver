@@ -2,7 +2,7 @@
 all: run
 
 local:
-	go run cmd/bot.go -env local
+	go run cmd/wbOrderSaver.go -env local
 
 run:
 	docker-compose up -d

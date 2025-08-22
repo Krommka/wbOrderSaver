@@ -30,9 +30,21 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `validate:"required"`
 }
 
+type KafkaConfig struct {
+	BootstrapServers     string `validate:"required"`
+	AutoCommitIntervalMs int    `validate:"required"`
+	AutoOffsetReset      string `validate:"required"`
+	SessionTimeoutMs     int    `validate:"required"`
+	Topic                string `validate:"required"`
+	ConsumerGroup        string `validate:"required"`
+	ProducerNumberOfKeys int    `validate:"required"`
+	FlushTimeout         int    `validate:"required"`
+}
+
 type Config struct {
 	DB  DBConfig
 	RD  RedisConfig
+	KF  KafkaConfig
 	Env string
 }
 
@@ -53,7 +65,7 @@ func MustLoad(loader loader.ConfigLoader) *Config {
 			Host:           envs["POSTGRES_HOST"],
 			Port:           envs["POSTGRES_PORT"],
 			ConnectTimeout: getEnvAsDuration(envs["POSTGRES_CONNECT_TIMEOUT"], 5*time.Second),
-			Retries:        getEnvAsInt("POSTGRES_RETRIES", 1),
+			Retries:        getEnvAsInt(envs["POSTGRES_RETRIES"], 1),
 		},
 		RD: RedisConfig{
 			Host:         envs["REDIS_HOST"],
@@ -65,11 +77,21 @@ func MustLoad(loader loader.ConfigLoader) *Config {
 			ReadTimeout:  getEnvAsDuration(envs["REDIS_READ_TIMEOUT"], 5*time.Second),
 			WriteTimeout: getEnvAsDuration(envs["REDIS_WRITE_TIMEOUT"], 5*time.Second),
 		},
+		KF: KafkaConfig{
+			BootstrapServers:     envs["KAFKA_BOOTSTRAP_SERVERS"],
+			AutoCommitIntervalMs: getEnvAsInt(envs["KAFKA_AUTO_COMMIT_INTERVAL_MS"], 1000),
+			AutoOffsetReset:      envs["KAFKA_AUTO_OFFSET_RESET"],
+			SessionTimeoutMs:     getEnvAsInt(envs["KAFKA_SESSION_TIMEOUT_MS"], 1000),
+			Topic:                envs["KAFKA_TOPIC"],
+			ConsumerGroup:        envs["KAFKA_CONSUMER_GROUP"],
+			ProducerNumberOfKeys: getEnvAsInt(envs["KAFKA_PRODUCER_NUM_OF_KEYS"], 20),
+			FlushTimeout:         getEnvAsInt(envs["KAFKA_FLUSH_TIMEOUT"], 5000),
+		},
 		Env: *env,
 	}
 
 	if err := validateConfig(cfg); err != nil {
-		log.Fatalf("%s: ошибка валидации конфига: %+v", op, err)
+		log.Fatalf("%s: error validation config: %+v", op, err)
 	}
 
 	return cfg
@@ -78,11 +100,16 @@ func MustLoad(loader loader.ConfigLoader) *Config {
 func validateConfig(cfg *Config) error {
 	if cfg.DB.User == "" || cfg.DB.Password == "" || cfg.DB.Name == "" ||
 		cfg.DB.Host == "" || cfg.DB.Port == "" || cfg.DB.Retries <= 0 {
-		return fmt.Errorf("отсутствуют необходимые поля конфигурации базы данных")
+		return fmt.Errorf("missing required database config fields")
 	}
 	if cfg.RD.Host == "" || cfg.RD.DialTimeout <= 0 || cfg.RD.ReadTimeout <= 0 || cfg.RD.
 		WriteTimeout <= 0 {
-		return fmt.Errorf("отсутствуют необходимые поля конфигурации кэш хранилища")
+		return fmt.Errorf("missing required cache config fields")
+	}
+	if cfg.KF.BootstrapServers == "" || cfg.KF.AutoCommitIntervalMs <= 0 || cfg.KF.SessionTimeoutMs <= 0 ||
+		cfg.KF.Topic == "" || cfg.KF.ConsumerGroup == "" || cfg.KF.AutoOffsetReset == "" ||
+		cfg.KF.FlushTimeout <= 0 || cfg.KF.ProducerNumberOfKeys <= 0 {
+		return fmt.Errorf("missing required kafka config fields")
 	}
 	return nil
 }
@@ -94,7 +121,7 @@ func getEnvAsDuration(strValue string, defaultValue time.Duration) time.Duration
 	}
 	value, err := time.ParseDuration(strValue)
 	if err != nil {
-		log.Printf("%s:недопустимое значение для %s, использовано по умолчанию: %v", op,
+		log.Printf("%s:forbidden value for %s, using default: %v", op,
 			strValue, defaultValue)
 		return defaultValue
 	}
@@ -108,7 +135,7 @@ func getEnvAsInt(strValue string, defaultValue int) int {
 	}
 	value, err := strconv.Atoi(strValue)
 	if err != nil {
-		log.Printf("%s:недопустимое значение для %s, использовано по умолчанию: %v", op, strValue,
+		log.Printf("%s:forbidden value for %s, using default: %v", op, strValue,
 			defaultValue)
 		return defaultValue
 	}

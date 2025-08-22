@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	"strings"
+	"wb_l0/configs"
 )
 
 const (
-	sessionTimeOut     = 7000
-	noTimeout          = -1
-	autoCommitInterval = 1000
+	noTimeout = -1
 )
 
 type Handler interface {
@@ -24,23 +22,24 @@ type Consumer struct {
 	consumerNumber int
 }
 
-func NewConsumer(address []string, handler Handler, consumerGroup, topic string, consumerNumber int) (*Consumer,
+func NewConsumer(cfg *configs.Config, handler Handler, consumerNumber int) (*Consumer,
 	error) {
+
 	config := &kafka.ConfigMap{
-		"bootstrap.servers":        strings.Join(address, ","),
-		"group.id":                 consumerGroup,
-		"session.timeout.ms":       sessionTimeOut,
+		"bootstrap.servers":        cfg.KF.BootstrapServers,
+		"group.id":                 cfg.KF.ConsumerGroup,
+		"session.timeout.ms":       cfg.KF.SessionTimeoutMs,
 		"enable.auto.offset.store": false,
 		"enable.auto.commit":       true,
-		"auto.commit.interval.ms":  autoCommitInterval,
-		"auto.offset.reset":        "earliest",
+		"auto.commit.interval.ms":  cfg.KF.AutoCommitIntervalMs,
+		"auto.offset.reset":        cfg.KF.AutoOffsetReset,
 	}
 
 	c, err := kafka.NewConsumer(config)
 	if err != nil {
 		return nil, fmt.Errorf("error creating consumer: %v", err)
 	}
-	if err = c.Subscribe(topic, nil); err != nil {
+	if err = c.Subscribe(cfg.KF.Topic, nil); err != nil {
 		return nil, fmt.Errorf("error subscribing to topic: %v", err)
 	}
 	return &Consumer{

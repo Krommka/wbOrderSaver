@@ -4,28 +4,25 @@ import (
 	"errors"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"strings"
+	"wb_l0/configs"
 )
 
 var errUnknownType = errors.New("unknown event type")
 
-const (
-	flushTimeout = 5000
-)
-
 type Producer struct {
-	producer *kafka.Producer
+	producer     *kafka.Producer
+	flushTimeout int
 }
 
-func NewProducer(address []string) (*Producer, error) {
+func NewProducer(cfg *configs.Config) (*Producer, error) {
 	conf := &kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(address, ","),
+		"bootstrap.servers": cfg.KF.BootstrapServers,
 	}
 	p, err := kafka.NewProducer(conf)
 	if err != nil {
 		return nil, fmt.Errorf("error creating the producer - %w", err)
 	}
-	return &Producer{producer: p}, nil
+	return &Producer{producer: p, flushTimeout: cfg.KF.FlushTimeout}, nil
 }
 
 func (p *Producer) Produce(message, topic, key string) error {
@@ -54,6 +51,6 @@ func (p *Producer) Produce(message, topic, key string) error {
 }
 
 func (p *Producer) Close() {
-	p.producer.Flush(flushTimeout)
+	p.producer.Flush(p.flushTimeout)
 	p.producer.Close()
 }
