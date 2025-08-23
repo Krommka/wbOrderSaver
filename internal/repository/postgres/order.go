@@ -217,11 +217,11 @@ func (s *Store) GetOrderByUID(ctx context.Context, orderUID string) (*domain.Ord
             p.transaction, p.request_id, c.currency_id, pp.name as provider_name,
             p.amount, p.payment_dt, p.bank, p.delivery_cost, p.goods_total, p.custom_fee
         FROM orders o
-        LEFT JOIN delivery d ON o.order_uid = d.order_uid
-        LEFT JOIN payment p ON o.order_uid = p.transaction
-        LEFT JOIN delivery_services ds ON o.delivery_service_id = ds.service_id
-        LEFT JOIN payment_providers pp ON p.provider_id = pp.provider_id
-        LEFT JOIN currencies c ON p.currency_id = c.currency_id
+        JOIN delivery d ON o.order_uid = d.order_uid
+        JOIN payment p ON o.order_uid = p.transaction
+        JOIN delivery_services ds ON o.delivery_service_id = ds.service_id
+        JOIN payment_providers pp ON p.provider_id = pp.provider_id
+        JOIN currencies c ON p.currency_id = c.currency_id
         WHERE o.order_uid = $1
     `
 
@@ -309,8 +309,8 @@ func (s *Store) getOrderItems(ctx context.Context, orderUID string) ([]domain.It
             i.total_price, i.nm_id, b.name as brand_name, i.status_id,
             oi.quantity
         FROM order_items oi
-        INNER JOIN items i ON oi.item_id = i.id
-        LEFT JOIN brands b ON i.brand_id = b.brand_id
+        JOIN items i ON oi.item_id = i.id
+        JOIN brands b ON i.brand_id = b.brand_id
         WHERE oi.order_uid = $1
     `
 

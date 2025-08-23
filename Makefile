@@ -13,6 +13,9 @@ stop:
 build:
 	docker-compose build
 
+reduild:
+	docker-compose up -d --build wbordersaver
+
 restart:
 	docker-compose down && docker-compose up -d
 

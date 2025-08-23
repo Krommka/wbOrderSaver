@@ -27,8 +27,9 @@ func main() {
 	uuids := generateKeys(numberOfKeys)
 	order := createTestOrder()
 	for i := 1; i < 20; i++ {
-		order.OrderUID = intToHex20(i)
-		order.Payment.Transaction = order.OrderUID
+		transaction := intToHex20(i)
+		order.OrderUID = transaction
+		order.Payment.Transaction = transaction
 		orderString, err := json.Marshal(order)
 		if err != nil {
 			fmt.Printf("error marshalling order %v: %v\n", order, err)
@@ -91,7 +92,7 @@ func createTestOrder() domain.Order {
 			Email:   "test@gmail.com",
 		},
 		Payment: domain.Payment{
-			Transaction:  "b563feb7b2b84b6b563a",
+			Transaction:  "",
 			RequestID:    "",
 			Currency:     "USD",
 			Provider:     "wbpay",

@@ -2,7 +2,6 @@ package wbOrderSaver
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,7 +11,6 @@ import (
 	"wb_l0/configs/loader/dotEnvLoader"
 	k "wb_l0/internal/delivery/kafka"
 	handler2 "wb_l0/internal/delivery/kafka/kafkaHandler"
-	"wb_l0/internal/domain"
 	"wb_l0/internal/repository/cachedRepo"
 	"wb_l0/internal/repository/postgres"
 	"wb_l0/internal/repository/redisCache"
@@ -54,16 +52,16 @@ func Run() {
 	go func() {
 		c1.Start()
 	}()
-	orderUID := "00000000000000000001"
-	order, err := orderUsecase.GetOrder(ctx, orderUID)
-	if err != nil {
-		if err != domain.ErrRecordNotFound {
-			log.Error("error getting order", "error", err, "orderUID", orderUID)
-		}
-		log.Error("not found", "error", err)
-	} else {
-		fmt.Println(order)
-	}
+	//orderUID := "00000000000000000001"
+	//order, err := orderUsecase.GetOrder(ctx, orderUID)
+	//if err != nil {
+	//	if err != domain.ErrRecordNotFound {
+	//		log.Error("error getting order", "error", err, "orderUID", orderUID)
+	//	}
+	//	log.Error("not found", "error", err)
+	//} else {
+	//	fmt.Println(order)
+	//}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
