@@ -1,0 +1,239 @@
+definitions:
+  domain.Delivery:
+    properties:
+      address:
+        maxLength: 255
+        minLength: 5
+        type: string
+      city:
+        maxLength: 100
+        minLength: 2
+        type: string
+      email:
+        maxLength: 100
+        type: string
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      phone:
+        type: string
+      region:
+        maxLength: 100
+        minLength: 2
+        type: string
+      zip:
+        maxLength: 20
+        type: string
+    required:
+    - address
+    - city
+    - email
+    - name
+    - phone
+    - region
+    - zip
+    type: object
+  domain.Item:
+    properties:
+      brand:
+        maxLength: 255
+        minLength: 2
+        type: string
+      chrt_id:
+        minimum: 1
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      nm_id:
+        minimum: 1
+        type: integer
+      price:
+        minimum: 1
+        type: integer
+      rid:
+        maxLength: 50
+        minLength: 10
+        type: string
+      sale:
+        maximum: 100
+        minimum: 0
+        type: integer
+      size:
+        maxLength: 50
+        type: string
+      status:
+        maximum: 600
+        minimum: 100
+        type: integer
+      total_price:
+        minimum: 0
+        type: integer
+      track_number:
+        type: string
+    required:
+    - brand
+    - chrt_id
+    - name
+    - nm_id
+    - price
+    - rid
+    - size
+    - status
+    - track_number
+    type: object
+  domain.Order:
+    properties:
+      customer_id:
+        maxLength: 50
+        type: string
+      date_created:
+        type: string
+      delivery:
+        $ref: '#/definitions/domain.Delivery'
+      delivery_service:
+        maxLength: 50
+        type: string
+      entry:
+        maxLength: 10
+        minLength: 3
+        type: string
+      internal_signature:
+        maxLength: 255
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/domain.Item'
+        minItems: 1
+        type: array
+      locale:
+        enum:
+        - en
+        - ru
+        type: string
+      oof_shard:
+        maxLength: 10
+        type: string
+      order_uid:
+        type: string
+      payment:
+        $ref: '#/definitions/domain.Payment'
+      shardkey:
+        maxLength: 10
+        type: string
+      sm_id:
+        minimum: 0
+        type: integer
+      track_number:
+        type: string
+    required:
+    - customer_id
+    - date_created
+    - delivery
+    - delivery_service
+    - entry
+    - items
+    - locale
+    - oof_shard
+    - order_uid
+    - payment
+    - shardkey
+    - sm_id
+    - track_number
+    type: object
+  domain.Payment:
+    properties:
+      amount:
+        minimum: 0
+        type: integer
+      bank:
+        maxLength: 100
+        type: string
+      currency:
+        type: string
+      custom_fee:
+        minimum: 0
+        type: integer
+      delivery_cost:
+        minimum: 0
+        type: integer
+      goods_total:
+        minimum: 0
+        type: integer
+      payment_dt:
+        minimum: 0
+        type: integer
+      provider:
+        maxLength: 50
+        type: string
+      request_id:
+        maxLength: 50
+        type: string
+      transaction:
+        type: string
+    required:
+    - amount
+    - bank
+    - currency
+    - payment_dt
+    - provider
+    - transaction
+    type: object
+info:
+  contact: {}
+paths:
+  /health:
+    get:
+      description: Check if service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /order/{order_uid}:
+    get:
+      description: Get order details by order_uid
+      parameters:
+      - description: Order UID
+        in: path
+        name: order_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get order by UID
+      tags:
+      - orders
+swagger: "2.0"

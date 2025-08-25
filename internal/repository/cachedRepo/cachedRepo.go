@@ -3,6 +3,8 @@ package cachedRepo
 import (
 	"context"
 	"log/slog"
+	"time"
+	"wb_l0/configs"
 	"wb_l0/internal/domain"
 )
 
@@ -10,25 +12,46 @@ type OrderRepository interface {
 	GetOrderByUID(ctx context.Context, orderUID string) (*domain.Order, error)
 	DeleteOrder(ctx context.Context, orderUID string) error
 	SaveOrder(ctx context.Context, order *domain.Order) error
+	GetLastOrdersUIDs(ctx context.Context, limit int) ([]string, error)
 }
 
 type CacheRepository interface {
 	GetOrderByUID(ctx context.Context, orderUID string) (*domain.Order, error)
 	SaveOrder(ctx context.Context, order *domain.Order) error
+	CountOrders(ctx context.Context) (int, error)
 }
 
 type CachedRepo struct {
 	repo  OrderRepository
 	cache CacheRepository
 	log   *slog.Logger
+	cfg   *configs.Config
 }
 
-func NewCachedRepo(repo OrderRepository, cache CacheRepository, log *slog.Logger) *CachedRepo {
-
+func NewCachedRepo(ctx context.Context, repo OrderRepository, cache CacheRepository, log *slog.Logger, cfg *configs.Config) *CachedRepo {
+	log.Info("initializing cached repo", "warmUp", cfg.RD.WarmUp, "capacity", cfg.RD.Capacity)
+	if cfg.RD.WarmUp == true {
+		count, err := cache.CountOrders(ctx)
+		log.Debug("cache repo count", "count", count)
+		if err != nil {
+			log.Warn("failed to count orders from database", "error", err)
+		}
+		if count < cfg.RD.Capacity {
+			log.Info("starting cache repo warmUp", "count", count, "capacity", cfg.RD.Capacity)
+			go func() {
+				err = warmUpCache(ctx, cfg.RD.Capacity, repo, cache, log)
+				if err != nil {
+					log.Warn("failed to warmUpCache", "error", err)
+				}
+			}()
+		}
+	}
+	log.Info("cache initialized")
 	return &CachedRepo{
 		repo:  repo,
 		cache: cache,
 		log:   log,
+		cfg:   cfg,
 	}
 }
 
@@ -90,5 +113,63 @@ func (r *CachedRepo) DeleteOrder(ctx context.Context, orderUID string) error {
 		return err
 	}
 	r.log.Info("order deleted from database successfully", "orderUID", orderUID)
+	return nil
+}
+
+func warmUpCache(ctx context.Context, capacity int, repo OrderRepository, cache CacheRepository, log *slog.Logger) error {
+
+	log.Info("Starting cache warm-up process")
+	startTime := time.Now()
+	limit := capacity
+	orderUIDs, err := repo.GetLastOrdersUIDs(ctx, limit)
+	if err != nil {
+		log.Error("Failed to get last orders UIDs for cache warm-up",
+			"error", err.Error())
+		return err
+	}
+
+	log.Info("Retrieved orders for cache warm-up",
+		"count", len(orderUIDs))
+
+	successCount := 0
+	for i, orderUID := range orderUIDs {
+		select {
+		case <-ctx.Done():
+			log.Warn("Cache warm-up interrupted by context cancellation")
+			return ctx.Err()
+		default:
+			order, err := repo.GetOrderByUID(ctx, orderUID)
+			if err != nil {
+				log.Warn("Failed to get order for cache warm-up",
+					"order_uid", orderUID,
+					"error", err.Error(),
+					"index", i)
+				continue
+			}
+
+			err = cache.SaveOrder(ctx, order)
+			if err != nil {
+				log.Warn("Failed to save order to cache during warm-up",
+					"order_uid", orderUID,
+					"error", err.Error(),
+					"index", i)
+				continue
+			}
+
+			successCount++
+
+			if (i+1)%10 == 0 {
+				log.Info("Cache warm-up progress",
+					"processed", i+1,
+					"total", len(orderUIDs),
+					"success", successCount)
+			}
+		}
+	}
+
+	log.Info("Cache warm-up completed",
+		"total_orders", len(orderUIDs),
+		"successful", successCount,
+		"duration_ms", time.Since(startTime).Milliseconds())
 	return nil
 }

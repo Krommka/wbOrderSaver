@@ -15,4 +15,6 @@ FROM debian:bullseye-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y librdkafka1 && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/bin/wbOrderSaver /app/wbOrderSaver
-CMD ["/app/wbOrderSaver"]
+COPY web/ /app/web/
+EXPOSE 8081
+CMD ["/app/wbOrderSaver", "-env", "dev"]

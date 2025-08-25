@@ -5,7 +5,7 @@ import (
 	"wb_l0/internal/domain"
 )
 
-type Store interface {
+type store interface {
 	SaveOrder(ctx context.Context, order *domain.Order) error
 	GetOrderByUID(ctx context.Context, orderUID string) (*domain.Order, error)
 	DeleteOrder(ctx context.Context, orderUID string) error

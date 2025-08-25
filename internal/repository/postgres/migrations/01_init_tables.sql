@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     PRIMARY KEY (order_uid, item_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_order_items_order_uid ON order_items(order_uid);
+
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Ошибка при создании таблиц: %', SQLERRM;
 END $$;

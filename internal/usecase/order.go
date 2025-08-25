@@ -9,12 +9,12 @@ import (
 )
 
 type OrderUsecase struct {
-	store      Store
+	store      store
 	retryCount int
 	log        *slog.Logger
 }
 
-func NewOrderUsecase(store Store, retryCount int, log *slog.Logger) *OrderUsecase {
+func NewOrderUsecase(store store, retryCount int, log *slog.Logger) *OrderUsecase {
 	return &OrderUsecase{store: store, retryCount: retryCount, log: log}
 }
 

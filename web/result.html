@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search result</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="result-container">
+    <header class="result-header">
+        <div class="back-button">
+            <a href="/">← Back to search</a>
+        </div>
+        <h1>Search result</h1>
+    </header>
+
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div id="error" class="error hidden">
+        <h3>Error</h3>
+        <p id="errorMessage"></p>
+        <a href="/" class="back-link">Try another order_uid</a>
+    </div>
+
+    <div id="result" class="result hidden">
+        <div class="order-card">
+            <h2>Info</h2>
+
+            <div class="info-section">
+                <h3>General</h3>
+                <div class="info-grid">
+                    <div class="info-item"><span class="info-label">order_uid:</span> <span class="info-value" id="orderUid"></span></div>
+                    <div class="info-item"><span class="info-label">track_number:</span> <span class="info-value" id="trackNumber"></span></div>
+                    <div class="info-item"><span class="info-label">entry:</span> <span class="info-value" id="entry"></span></div>
+                    <div class="info-item"><span class="info-label">locale:</span> <span class="info-value" id="locale"></span></div>
+                    <div class="info-item"><span class="info-label">internal_signature:</span> <span class="info-value" id="internalSignature"></span></div>
+                    <div class="info-item"><span class="info-label">customer_id:</span> <span class="info-value" id="customerId"></span></div>
+                    <div class="info-item"><span class="info-label">delivery_service:</span> <span class="info-value" id="deliveryService"></span></div>
+                    <div class="info-item"><span class="info-label">shardkey:</span> <span class="info-value" id="shardkey"></span></div>
+                    <div class="info-item"><span class="info-label">sm_id:</span> <span class="info-value" id="smId"></span></div>
+                    <div class="info-item"><span class="info-label">date_created:</span> <span class="info-value" id="dateCreated"></span></div>
+                    <div class="info-item"><span class="info-label">oof_shard:</span> <span class="info-value" id="oofShard"></span></div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>Delivery</h3>
+                <div class="info-grid">
+                    <div class="info-item"><span class="info-label">name:</span> <span class="info-value" id="deliveryName"></span></div>
+                    <div class="info-item"><span class="info-label">phone:</span> <span class="info-value" id="deliveryPhone"></span></div>
+                    <div class="info-item"><span class="info-label">zip:</span> <span class="info-value" id="deliveryZip"></span></div>
+                    <div class="info-item"><span class="info-label">city:</span> <span class="info-value" id="deliveryCity"></span></div>
+                    <div class="info-item"><span class="info-label">address:</span> <span class="info-value" id="deliveryAddress"></span></div>
+                    <div class="info-item"><span class="info-label">region:</span> <span class="info-value" id="deliveryRegion"></span></div>
+                    <div class="info-item"><span class="info-label">email:</span> <span class="info-value" id="deliveryEmail"></span></div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>Payment</h3>
+                <div class="info-grid">
+                    <div class="info-item"><span class="info-label">transaction:</span> <span class="info-value" id="paymentTransaction"></span></div>
+                    <div class="info-item"><span class="info-label">request_id:</span> <span class="info-value" id="paymentRequestId"></span></div>
+                    <div class="info-item"><span class="info-label">currency:</span> <span class="info-value" id="paymentCurrency"></span></div>
+                    <div class="info-item"><span class="info-label">provider:</span> <span class="info-value" id="paymentProvider"></span></div>
+                    <div class="info-item"><span class="info-label">amount:</span> <span class="info-value" id="paymentAmount"></span></div>
+                    <div class="info-item"><span class="info-label">payment_dt:</span> <span class="info-value" id="paymentDt"></span></div>
+                    <div class="info-item"><span class="info-label">bank:</span> <span class="info-value" id="paymentBank"></span></div>
+                    <div class="info-item"><span class="info-label">delivery_cost:</span> <span class="info-value" id="paymentDeliveryCost"></span></div>
+                    <div class="info-item"><span class="info-label">goods_total:</span> <span class="info-value" id="paymentGoodsTotal"></span></div>
+                    <div class="info-item"><span class="info-label">custom_fee:</span> <span class="info-value" id="paymentCustomFee"></span></div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <details class="items-dropdown">
+                    <summary>
+                        <h3>Items - <span id="itemsCount">0</span></h3>
+                    </summary>
+                    <div id="itemsList" class="items-list"></div>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>

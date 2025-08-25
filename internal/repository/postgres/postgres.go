@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
-	"log"
 	"log/slog"
 	"time"
 	"wb_l0/configs"
@@ -28,6 +27,13 @@ func NewStore(ctx context.Context, cfg *configs.Config, log *slog.Logger) (*Stor
 }
 
 func (s *Store) Connect(ctx context.Context, cfg configs.Config) error {
+	s.log.Info("Connecting to database",
+		"host", cfg.DB.Host,
+		"port", cfg.DB.Port,
+		"database", cfg.DB.Name,
+		"user", cfg.DB.User,
+		"timeout", cfg.DB.ConnectTimeout,
+		"retries", cfg.DB.Retries)
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before connection: %w", err)
 	}
@@ -39,7 +45,7 @@ func (s *Store) Connect(ctx context.Context, cfg configs.Config) error {
 		cfg.DB.Host,
 		cfg.DB.Port,
 		cfg.DB.Name,
-		cfg.DB.ConnectTimeout.Seconds(),
+		int(cfg.DB.ConnectTimeout.Seconds()),
 	))
 	if err != nil {
 		return fmt.Errorf("failed to parse connection config: %w", err)
@@ -48,19 +54,18 @@ func (s *Store) Connect(ctx context.Context, cfg configs.Config) error {
 	var db *sql.DB
 
 	retries := cfg.DB.Retries
-	retryDelay := 5 * time.Second
+	retryDelay := cfg.DB.ConnectTimeout
 
 	for i := 0; i < retries; i++ {
 		if err = ctx.Err(); err != nil {
 			return fmt.Errorf("%w: context cancelled during retries", err)
 		}
 
-		db, err = openConnection(ctx, connConfig)
+		db, err = openConnection(ctx, cfg.DB.ConnectTimeout, connConfig)
 		if err == nil {
 			break
 		}
-
-		log.Printf("Retry %d/%d: Failed to connect to database: %v", i+1, retries, err)
+		s.log.Error("failed to connect to database", "retry", i+1, "retries", retries, "error", err)
 
 		select {
 		case <-time.After(retryDelay):
@@ -83,13 +88,14 @@ func (s *Store) Connect(ctx context.Context, cfg configs.Config) error {
 	return nil
 }
 
-func openConnection(ctx context.Context, config *pgx.ConnConfig) (*sql.DB, error) {
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+func openConnection(ctx context.Context, timeout time.Duration, config *pgx.ConnConfig) (*sql.DB, error) {
+	pingCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	connStr := stdlib.RegisterConnConfig(config)
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
+
 		return nil, fmt.Errorf("failed to open connection: %w", err)
 	}
 

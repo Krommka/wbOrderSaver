@@ -18,6 +18,7 @@ func main() {
 
 	envLoader := dotEnvLoader.DotEnvLoader{}
 	cfg := configs.MustLoad(envLoader)
+	cfg.KF.BootstrapServers = "localhost:9091, localhost:9092,localhost:9093"
 
 	p, err := k.NewProducer(cfg)
 	if err != nil {
@@ -25,11 +26,8 @@ func main() {
 	}
 	numberOfKeys := cfg.KF.ProducerNumberOfKeys
 	uuids := generateKeys(numberOfKeys)
-	order := createTestOrder()
-	for i := 1; i < 20; i++ {
-		transaction := intToHex20(i)
-		order.OrderUID = transaction
-		order.Payment.Transaction = transaction
+	for i := 1; i < 150; i++ {
+		order := domain.CreateTestOrder(i)
 		orderString, err := json.Marshal(order)
 		if err != nil {
 			fmt.Printf("error marshalling order %v: %v\n", order, err)
@@ -41,6 +39,14 @@ func main() {
 		}
 		fmt.Printf("Producing order %v to Kafka\n", order)
 	}
+}
+
+func generateKeys(numberOfKeys int) []string {
+	keys := make([]string, numberOfKeys)
+	for i := 0; i < numberOfKeys; i++ {
+		keys[i] = uuid.NewString()
+	}
+	return keys
 }
 
 func intToHex20(num int) string {
@@ -58,14 +64,6 @@ func intToHex20(num int) string {
 	}
 
 	return hexStr
-}
-
-func generateKeys(numberOfKeys int) []string {
-	keys := make([]string, numberOfKeys)
-	for i := 0; i < numberOfKeys; i++ {
-		keys[i] = uuid.NewString()
-	}
-	return keys
 }
 
 func createTestOrder() domain.Order {

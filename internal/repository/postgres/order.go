@@ -166,10 +166,10 @@ func (s *Store) SaveOrder(ctx context.Context, order *domain.Order) error {
 
 		_, err = tx.ExecContext(ctx, `
             INSERT INTO order_items (order_uid, item_id, quantity)
-            VALUES ($1, $2, 1)
+            VALUES ($1, $2, $3)
             ON CONFLICT (order_uid, item_id) DO UPDATE SET
                 quantity = order_items.quantity + 1`,
-			order.OrderUID, itemID,
+			order.OrderUID, itemID, 1,
 		)
 		if err != nil {
 			s.log.Error("Failed to create order-item link",
@@ -478,4 +478,61 @@ func (s *Store) checkOrderExists(ctx context.Context, orderUID string) (bool, er
 	}
 
 	return exists, nil
+}
+
+func (s *Store) GetLastOrdersUIDs(ctx context.Context, limit int) ([]string, error) {
+	startTime := time.Now()
+
+	s.log.Info("Getting last orders UIDs from database",
+		"operation", "GetLastOrdersUIDs",
+		"limit", limit,
+		"query_type", "read",
+	)
+
+	query := `
+        SELECT order_uid 
+        FROM orders 
+        ORDER BY date_created DESC 
+        LIMIT $1
+    `
+
+	rows, err := s.db.QueryContext(ctx, query, limit)
+	if err != nil {
+		s.log.Error("Failed to execute query for last orders",
+			"error", err.Error(),
+			"error_type", "database_query",
+			"query_time_ms", time.Since(startTime).Milliseconds(),
+		)
+		return nil, fmt.Errorf("failed to get last orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orderUIDs []string
+	for rows.Next() {
+		var orderUID string
+		if err := rows.Scan(&orderUID); err != nil {
+			s.log.Error("Failed to scan order UID",
+				"error", err.Error(),
+				"query_time_ms", time.Since(startTime).Milliseconds(),
+			)
+			return nil, fmt.Errorf("failed to scan order UID: %w", err)
+		}
+		orderUIDs = append(orderUIDs, orderUID)
+	}
+
+	if err := rows.Err(); err != nil {
+		s.log.Error("Error iterating through rows",
+			"error", err.Error(),
+			"query_time_ms", time.Since(startTime).Milliseconds(),
+		)
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	s.log.Info("Successfully retrieved last orders UIDs",
+		"count", len(orderUIDs),
+		"query_time_ms", time.Since(startTime).Milliseconds(),
+		"status", "success",
+	)
+
+	return orderUIDs, nil
 }

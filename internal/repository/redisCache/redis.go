@@ -12,9 +12,10 @@ import (
 )
 
 type RedisRepo struct {
-	client *redis.Client
-	prefix string
-	log    *slog.Logger
+	client   *redis.Client
+	prefix   string
+	capacity int
+	log      *slog.Logger
 }
 
 func NewCache(ctx context.Context, cfg *configs.Config, prefix string, log *slog.Logger) (*RedisRepo,
@@ -38,9 +39,10 @@ func NewCache(ctx context.Context, cfg *configs.Config, prefix string, log *slog
 	log.Info("successfully connected to Redis", "host", cfg.RD.Host)
 
 	return &RedisRepo{
-		client: db,
-		prefix: prefix,
-		log:    log,
+		client:   db,
+		prefix:   prefix,
+		capacity: cfg.RD.Capacity,
+		log:      log,
 	}, nil
 }
 
@@ -89,11 +91,54 @@ func (r *RedisRepo) SaveOrder(ctx context.Context, order *domain.Order) error {
 		return err
 	}
 	r.log.Debug("order added to recent_orders sorted set", "timestamp", timestamp)
-	err = r.client.ZRemRangeByRank(ctx, sortedSetKey, 0, -1001).Err()
-	if err != nil {
-		r.log.Error("failed to trim recent_orders sorted set", "error", err)
-		return err
+
+	// Удаляем старые заказы если превышен лимит
+	if r.capacity > 0 {
+		count, err := r.client.ZCard(ctx, sortedSetKey).Result()
+		if err != nil {
+			return err
+		}
+
+		if count > int64(r.capacity) {
+			// Получаем UID заказов, которые нужно удалить
+			uidsToRemove, err := r.client.ZRange(ctx, sortedSetKey, 0, count-int64(r.capacity)-1).Result()
+			if err != nil {
+				r.log.Error("failed to get old orders for removal", "error", err)
+				return err
+			}
+
+			// Удаляем из sorted set
+			removedFromSet, err := r.client.ZRemRangeByRank(ctx, sortedSetKey, 0, count-int64(r.capacity)-1).Result()
+			if err != nil {
+				r.log.Error("failed to remove from sorted set", "error", err)
+				return err
+			}
+
+			// Удаляем сами данные заказов
+			if len(uidsToRemove) > 0 {
+				keysToDelete := make([]string, len(uidsToRemove))
+				for i, uid := range uidsToRemove {
+					keysToDelete[i] = r.prefix + uid
+				}
+
+				deleted, err := r.client.Del(ctx, keysToDelete...).Result()
+				if err != nil {
+					r.log.Error("failed to delete order data", "error", err)
+				} else {
+					r.log.Debug("deleted old orders",
+						"from_set", removedFromSet,
+						"from_data", deleted,
+						"uids", uidsToRemove)
+				}
+			}
+		}
 	}
+
 	r.log.Info("order successfully cached", "orderUID", order.OrderUID)
 	return nil
+}
+
+func (r *RedisRepo) CountOrders(ctx context.Context) (int, error) {
+	res, err := r.client.ZCard(ctx, r.prefix+"recent_orders").Result()
+	return int(res), err
 }
