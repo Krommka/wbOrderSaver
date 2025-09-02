@@ -1,3 +1,5 @@
+SERVICE_MAIN=wbordersaver
+SERVICES_INFRA=redis zookeeper kafka1 kafka2 kafka3 kafka-ui db
 
 all: run
 
@@ -6,6 +8,15 @@ local:
 
 run:
 	docker-compose up -d
+
+infra:
+	docker-compose up -d $(SERVICES_INFRA)
+
+app:
+	docker-compose up -d $(SERVICE_MAIN)
+
+orders:
+	go run cmd/KafkaProducer/main.go
 
 stop:
 	docker-compose stop
