@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Search - WB L0</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="google-style-container">
+    <div class="search-container">
+        <div class="logo">
+        <div class="logo">
+            <h1>WB Order Search</h1>
+        </div>
+
+        <div class="search-box">
+            <input
+                    type="text"
+                    id="orderInput"
+                    placeholder="Введите order_uid"
+                    maxlength="20"
+            >
+        </div>
+
+        <div class="search-buttons">
+            <button onclick="searchOrder()" class="search-btn">Order Search</button>
+        </div>
+
+        <div class="examples">
+            <p>Example: b563feb7b2b84b6abcdf</p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
