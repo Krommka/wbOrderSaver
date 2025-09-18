@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"log/slog"
 	"time"
 	"wb_l0/internal/domain"
 	"wb_l0/internal/usecase"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
 type KafkaHandler struct {

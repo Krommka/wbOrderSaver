@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
 	"log/slog"
 	"time"
 	"wb_l0/configs"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 type Store struct {

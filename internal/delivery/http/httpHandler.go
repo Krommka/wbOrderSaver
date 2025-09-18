@@ -2,12 +2,13 @@ package http
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"time"
 	"wb_l0/internal/domain"
 	"wb_l0/internal/usecase"
+
+	"github.com/gin-gonic/gin"
 )
 
 type OrderHandler struct {

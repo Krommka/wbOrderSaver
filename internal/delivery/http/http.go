@@ -1,13 +1,14 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"log/slog"
 	"net/http"
 	_ "wb_l0/docs"
 	"wb_l0/internal/usecase"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func SetupRouter(uc *usecase.OrderUsecase, log *slog.Logger) *gin.Engine {

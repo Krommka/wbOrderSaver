@@ -1,9 +1,10 @@
 package dotEnvLoader
 
 import (
-	"github.com/joho/godotenv"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 type DotEnvLoader struct{}

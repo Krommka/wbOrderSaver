@@ -3,8 +3,9 @@ package kafka
 import (
 	"errors"
 	"fmt"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"wb_l0/configs"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
 var errUnknownType = errors.New("unknown event type")

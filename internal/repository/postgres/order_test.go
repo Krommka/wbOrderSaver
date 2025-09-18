@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 	"wb_l0/internal/domain"
 	"wb_l0/pkg/logger"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStore_GetOrderByUID(t *testing.T) {

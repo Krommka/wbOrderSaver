@@ -2,9 +2,10 @@ package kafka
 
 import (
 	"fmt"
+	"wb_l0/configs"
+
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	"wb_l0/configs"
 )
 
 const (

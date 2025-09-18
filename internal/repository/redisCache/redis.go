@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"time"
 	"wb_l0/configs"
 	"wb_l0/internal/domain"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type RedisRepo struct {
