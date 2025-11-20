@@ -3,6 +3,7 @@ package wbOrderSaver
 import (
 	"context"
 	"errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"os"
 	"os/signal"
@@ -75,6 +76,20 @@ func Run() {
 		log.Info("Server started", "port", cfg.HTTP.Port)
 	}()
 
+	//prometheus.InitPrometheus()
+	httpSrv := &http.Server{
+		Addr:    ":8082",
+		Handler: promhttp.Handler(),
+	}
+
+	go func() {
+		log.Info("Запуск prometheus", "port", 8082)
+		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("HTTP prometheus server error: ", err)
+			os.Exit(1)
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -85,7 +100,7 @@ func Run() {
 	defer shutdownCancel()
 	wg := &sync.WaitGroup{}
 
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		db.Disconnect(ctx)
@@ -107,6 +122,15 @@ func Run() {
 		}
 
 		log.Info("Server stopped")
+	}()
+
+	go func() {
+		defer wg.Done()
+		log.Info("Shutting down prometheus server...")
+		if serverErr := httpSrv.Shutdown(ctx); serverErr != nil {
+			log.Error("Server shutdown error", "error", serverErr)
+		}
+		log.Info("Prometheus server stopped")
 	}()
 
 	completed := make(chan struct{})

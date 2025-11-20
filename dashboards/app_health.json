@@ -1,0 +1,607 @@
+{
+  "title": "Go Application Runtime Dashboard",
+  "description": "Detailed monitoring of Go application runtime metrics",
+  "tags": [
+    "go",
+    "runtime",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "gnetId": null,
+  "uid": "go-runtime-monitoring",
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "title": "Service Status",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "up{job=\"wbordersaver\"}",
+          "legendFormat": "Status"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": "DOWN",
+                "1": "UP"
+              }
+            }
+          ],
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "title": "Service Uptime",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "time() - process_start_time_seconds{job=\"wbordersaver\"}",
+          "legendFormat": "Uptime"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dtdurations",
+          "decimals": 0,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      }
+    },
+    {
+      "title": "Goroutines",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_goroutines{job=\"wbordersaver\"}",
+          "legendFormat": "Goroutines"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      }
+    },
+    {
+      "title": "OS Threads",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_threads{job=\"wbordersaver\"}",
+          "legendFormat": "Threads"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "title": "Heap Allocated",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_heap_alloc_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Heap"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      }
+    },
+    {
+      "title": "Next GC",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_next_gc_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Next GC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      }
+    },
+    {
+      "title": "Heap Objects",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_heap_objects{job=\"wbordersaver\"}",
+          "legendFormat": "Objects"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      }
+    },
+    {
+      "title": "Open File Descriptors",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "process_open_fds{job=\"wbordersaver\"}",
+          "legendFormat": "FDs"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "colorMode": "none"
+        }
+      },
+      "options": {
+        "graphMode": "none",
+        "colorMode": "none",
+        "justifyMode": "center"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 0.03,
+          "min": 0,
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 4
+      },
+      "id": 119,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "7.5.6",
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(rate(process_cpu_seconds_total{instance=~\"$instance\"}[1m]))",
+          "interval": "",
+          "legendFormat": "CPU Seconds",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "CPU Time s/s [1m]",
+      "type": "gauge"
+    },
+    {
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"wbordersaver\"}[1m]) * 100",
+          "legendFormat": "CPU Usage %"
+        },
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"wbordersaver\",mode=\"user\"}[1m]) * 100",
+          "legendFormat": "User CPU %"
+        },
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"wbordersaver\",mode=\"system\"}[1m]) * 100",
+          "legendFormat": "System CPU %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "title": "Heap Allocated",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_heap_alloc_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Heap"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 0
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      }
+    },
+    {
+      "title": "Heap Objects",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_heap_objects{job=\"wbordersaver\"}",
+          "legendFormat": "Heap Objects"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      }
+    },
+    {
+      "title": "GC Duration (0.75 Quantile)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_gc_duration_seconds{job=\"wbordersaver\", quantile=\"0.75\"}",
+          "legendFormat": "p75"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 6
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "title": "Goroutines Over Time",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_goroutines{job=\"wbordersaver\"}",
+          "legendFormat": "Goroutines"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      }
+    },
+    {
+      "title": "GC Pauses & Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(go_gc_duration_seconds_count{job=\"wbordersaver\"}[5m])",
+          "legendFormat": "GC Rate/sec"
+        },
+        {
+          "expr": "go_gc_duration_seconds_sum{job=\"wbordersaver\"} - (go_gc_duration_seconds_sum{job=\"wbordersaver\"} offset 5m)",
+          "legendFormat": "GC Time/5min"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      }
+    },
+    {
+      "title": "CPU Performance Indicators",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"wbordersaver\"}[1m]) * 1000",
+          "legendFormat": "CPU Usage (ms/s)"
+        },
+        {
+          "expr": "clamp_max(1000 - (rate(process_cpu_seconds_total{job=\"wbordersaver\"}[1m]) * 1000), 1000)",
+          "legendFormat": "CPU Headroom (ms/s)"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"wbordersaver\"}[1m])) * 1000",
+          "legendFormat": "Latency p95 (ms)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 1,
+          "min": 0
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      }
+    },
+    {
+      "title": "HTTP Traffic Estimation",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{job=\"wbordersaver\"}[1m]) * 2048",
+          "legendFormat": "Estimated Request Traffic (2KB/req)"
+        },
+        {
+          "expr": "rate(http_requests_total{job=\"wbordersaver\"}[1m]) * 10240",
+          "legendFormat": "Estimated Response Traffic (10KB/resp)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      }
+    },
+    {
+      "title": "Memory Breakdown",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_memstats_heap_inuse_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Heap In Use"
+        },
+        {
+          "expr": "go_memstats_heap_idle_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Heap Idle"
+        },
+        {
+          "expr": "go_memstats_heap_released_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Heap Released"
+        },
+        {
+          "expr": "go_memstats_stack_sys_bytes{job=\"wbordersaver\"}",
+          "legendFormat": "Stack Sys"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up, instance)"
+      },
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up, job)",
+        "refresh": 1,
+        "current": {
+          "value": "wbordersaver",
+          "text": "wbordersaver"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

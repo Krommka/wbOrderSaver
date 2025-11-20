@@ -6,7 +6,14 @@ import (
 	"time"
 	"wb_l0/configs"
 	"wb_l0/internal/domain"
+	"wb_l0/pkg/prometheus"
 )
+
+//var sl []domain.Order
+//
+//func init() {
+//	sl = make([]domain.Order, 0)
+//}
 
 type OrderRepository interface {
 	GetOrderByUID(ctx context.Context, orderUID string) (*domain.Order, error)
@@ -56,16 +63,23 @@ func NewCachedRepo(ctx context.Context, repo OrderRepository, cache CacheReposit
 }
 
 func (r *CachedRepo) GetOrderByUID(ctx context.Context, orderUID string) (*domain.Order, error) {
-	order, err := r.cache.GetOrderByUID(ctx, orderUID)
 	r.log.Debug("attempting to get order from cache", "orderUID", orderUID)
+	order, err := r.cache.GetOrderByUID(ctx, orderUID)
 	if err == nil && order != nil {
+		prometheus.CacheOperations.WithLabelValues("hit").Inc()
 		r.log.Debug("order found in cache")
+
+		// ALARM LEAK
+		//sl = append(sl, *order)
+
 		return order, nil
 	}
 	if err != nil && err != domain.ErrRecordNotFound {
+		prometheus.CacheOperations.WithLabelValues("error").Inc()
 		r.log.Warn("error getting from cache, falling back to database", "error",
 			err, "orderUID", orderUID)
 	}
+	prometheus.CacheOperations.WithLabelValues("miss").Inc()
 	r.log.Debug("order not found in cache, querying database", "orderUID", orderUID)
 
 	order, err = r.repo.GetOrderByUID(ctx, orderUID)

@@ -1,0 +1,200 @@
+{
+  "title": "OrderSaver Monitoring",
+  "description": "Dashboard for tracking OrderSaver metrics",
+  "tags": ["ordersaver", "kafka", "monitoring"],
+  "timezone": "browser",
+  "editable": true,
+  "gnetId": null,
+  "uid": "ordersaver-monitoring",
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "title": "HTTP Requests Rate",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(http_requests_total[1m]))",
+        "legendFormat": "Total RPS"
+      }],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}
+    },
+    {
+      "title": "HTTP Response Codes",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(http_requests_total[1m])) by (status)",
+        "legendFormat": "{{status}}"
+      }],
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}
+    },
+    {
+      "title": "HTTP Request Duration (95th percentile)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, path))",
+        "legendFormat": "{{path}} - p95"
+      }],
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list" }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}
+    },
+    {
+      "title": "Orders Processing Rate",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(orders_processed_total[1m])) by (status)",
+        "legendFormat": "{{status}}"
+      }],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8}
+    },
+    {
+      "title": "Order Processing Duration",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, rate(order_processing_duration_seconds_bucket[5m]))",
+        "legendFormat": "p95"
+      }],
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8}
+    },
+    {
+      "title": "Kafka Messages Processing Rate",
+      "type": "barchart",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(kafka_messages_processed_total[1m])) by (status)",
+        "legendFormat": "{{status}}"
+      }],
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8}
+    },
+    {
+      "title": "Kafka Processing Duration (95th percentile)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(kafka_processing_duration_seconds_bucket[5m])) by (le, topic))",
+        "legendFormat": "{{topic}} - p95"
+      }],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+    },
+    {
+      "title": "Kafka Errors",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(kafka_errors_total[1m])) by (error_type)",
+        "legendFormat": "{{error_type}}"
+      }],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+    },
+    {
+      "title": "HTTP Requests In Flight",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "http_requests_in_flight"
+      }],
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 24}
+    },
+    {
+      "title": "Cache Operations Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(cache_operations_total[1m])) by (status)",
+        "legendFormat": "{{status}}"
+      }],
+      "gridPos": {"h": 8, "w": 9, "x": 6, "y": 24}
+    },
+    {
+      "title": "Cache Hit Rate",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "sum(rate(cache_operations_total{status=\"hit\"}[5m])) / sum(rate(cache_operations_total{status=~\"hit|miss\"}[5m])) * 100",
+        "legendFormat": "Hit Rate"
+      }],
+      "unit": "percent",
+      "gridPos": {"h": 8, "w": 9, "x": 15, "y": 24}
+    },
+    {
+      "title": "Go Runtime Metrics",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "go_goroutines",
+          "legendFormat": "Goroutines"
+        },
+        {
+          "expr": "go_memstats_alloc_bytes",
+          "legendFormat": "Memory Allocated",
+          "unit": "bytes"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+    },
+    {
+      "title": "Process CPU Usage",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [{
+        "expr": "rate(process_cpu_seconds_total[1m]) * 100",
+        "legendFormat": "CPU Usage",
+        "unit": "percent"
+      }],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+    },
+    {
+      "title": "Log Entries",
+      "type": "stat",
+      "datasource": "Loki",
+      "targets": [{
+        "expr": "sum by (level) (count_over_time({job=\"wbordersaver\"}[1m]))",
+        "legendFormat": "{{level}}"
+      }],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40}
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "topic",
+        "label": "Kafka Topic",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kafka_messages_processed_total, topic)"
+      },
+      {
+        "name": "path",
+        "label": "HTTP Path",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(http_requests_total, path)"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(http_requests_total, status)"
+      }
+    ]
+  }
+}

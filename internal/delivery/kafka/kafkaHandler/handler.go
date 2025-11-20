@@ -8,6 +8,7 @@ import (
 	"time"
 	"wb_l0/internal/domain"
 	"wb_l0/internal/usecase"
+	"wb_l0/pkg/prometheus"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
@@ -27,6 +28,10 @@ func NewKafkaHandler(orderUsecase *usecase.OrderUsecase, log *slog.Logger) *Kafk
 func (h *KafkaHandler) HandleMessage(message []byte, topic kafka.TopicPartition, cn int) error {
 	startTime := time.Now()
 
+	prometheus.KafkaWorkersBusy.Inc()
+	defer prometheus.KafkaWorkersBusy.Dec()
+	defer prometheus.KafkaProcessingDuration.WithLabelValues(*topic.Topic).Observe(time.Since(startTime).Seconds())
+
 	h.log.Debug("Kafka message received",
 		"topic", topic.Topic,
 		"partition", topic.Partition,
@@ -39,6 +44,8 @@ func (h *KafkaHandler) HandleMessage(message []byte, topic kafka.TopicPartition,
 	defer cancel()
 	order, err := h.parseOrder(message)
 	if err != nil {
+		prometheus.KafkaErrorsTotal.WithLabelValues(*topic.Topic, "processing").Inc()
+		prometheus.KafkaMessagesProcessed.WithLabelValues(*topic.Topic, "error_parsing").Inc()
 		h.log.Error("Failed to parse order",
 			"error", err,
 			"topic", topic.Topic,
@@ -49,6 +56,7 @@ func (h *KafkaHandler) HandleMessage(message []byte, topic kafka.TopicPartition,
 		)
 		return nil
 	}
+	prometheus.KafkaMessagesProcessed.WithLabelValues(*topic.Topic, "success").Inc()
 
 	if err = h.orderUsecase.CreateOrder(ctx, order); err != nil {
 		h.log.Error("Failed to create order",
@@ -63,6 +71,7 @@ func (h *KafkaHandler) HandleMessage(message []byte, topic kafka.TopicPartition,
 		)
 		return err
 	}
+
 	h.log.Info("Message processing completed",
 		"status", "success",
 		"order_uid", order.OrderUID,

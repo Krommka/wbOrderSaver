@@ -2,19 +2,29 @@ package http
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"time"
 	"wb_l0/internal/domain"
 	"wb_l0/internal/usecase"
-
-	"github.com/gin-gonic/gin"
+	"wb_l0/pkg/prometheus"
 )
 
 type OrderHandler struct {
 	uc  *usecase.OrderUsecase
 	log *slog.Logger
 }
+
+type OrderStatus string
+
+const (
+	OrderStatusSuccess       OrderStatus = "success"
+	OrderStatusBadRequest    OrderStatus = "bad_request"
+	OrderStatusInvalidUID    OrderStatus = "invalid_uid"
+	OrderStatusNotFound      OrderStatus = "not_found"
+	OrderStatusInternalError OrderStatus = "internal_error"
+)
 
 func NewOrderHandler(uc *usecase.OrderUsecase, logger *slog.Logger) *OrderHandler {
 	return &OrderHandler{
@@ -36,9 +46,23 @@ func NewOrderHandler(uc *usecase.OrderUsecase, logger *slog.Logger) *OrderHandle
 // @Router /order/{order_uid} [get]
 func (h *OrderHandler) GetOrderByUID(c *gin.Context) {
 	startTime := time.Now()
-
 	orderUID := c.Param("order_uid")
+
+	status := OrderStatusSuccess
+
+	defer func() {
+		prometheus.OrdersProcessed.WithLabelValues(string(status)).Inc()
+		prometheus.OrderProcessingDuration.Observe(time.Since(startTime).Seconds())
+
+		h.log.Info("Order request completed",
+			"order_uid", orderUID,
+			"status", status,
+			"duration_ms", time.Since(startTime).Milliseconds(),
+		)
+	}()
+
 	if orderUID == "" {
+		status = OrderStatusBadRequest
 		h.log.Error("Order_uid is empty")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid_request",
@@ -48,6 +72,7 @@ func (h *OrderHandler) GetOrderByUID(c *gin.Context) {
 	}
 
 	if len(orderUID) != 20 {
+		status = OrderStatusInvalidUID
 		h.log.Error("Order_uid is invalid")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid_order_uid",
@@ -59,6 +84,7 @@ func (h *OrderHandler) GetOrderByUID(c *gin.Context) {
 	order, err := h.uc.GetOrder(c.Request.Context(), orderUID)
 	if err != nil {
 		if err == domain.ErrRecordNotFound {
+			status = OrderStatusNotFound
 			h.log.Error("Order not found", "orderUID", orderUID)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error":     "not_found",
@@ -69,7 +95,7 @@ func (h *OrderHandler) GetOrderByUID(c *gin.Context) {
 		}
 
 		h.log.Error("Failed to get order", "error", err, "orderUID", orderUID)
-
+		status = OrderStatusInternalError
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "internal_error",
 			"message": "failed to retrieve order",
