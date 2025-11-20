@@ -16,11 +16,11 @@ scrape_configs:
           __path__: /var/log/orderSaver.log
     pipeline_stages:
       - json:
-          expressions:
-            time: time
-            level: level
-            msg: msg
-            source: source
+        expressions:
+          time: time
+          level: level
+          msg: msg
+          source: source
       - labels:
         level:
       - timestamp:
